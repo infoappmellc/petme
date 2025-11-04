@@ -353,13 +353,23 @@ export default function Home({ latestNews }: HomeProps) {
 }
 
 export const getStaticProps: GetStaticProps<HomeProps> = async () => {
-  const apiBaseUrl = getServerApiBaseUrl();
-  const { data } = await getPaginatedNews(apiBaseUrl, 1, 3);
-  const latestNews = data.slice(0, 3);
-  return {
-    props: {
-      latestNews,
-    },
-    revalidate: 60,
-  };
+  try {
+    const apiBaseUrl = getServerApiBaseUrl();
+    const { data } = await getPaginatedNews(apiBaseUrl, 1, 3);
+    const latestNews = data.slice(0, 3);
+    return {
+      props: {
+        latestNews,
+      },
+      revalidate: 60,
+    };
+  } catch (error) {
+    console.error('Unable to fetch homepage news', error);
+    return {
+      props: {
+        latestNews: [],
+      },
+      revalidate: 60,
+    };
+  }
 };
