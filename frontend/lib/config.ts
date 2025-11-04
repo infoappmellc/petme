@@ -1,5 +1,14 @@
-const PUBLIC_API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL?.trim();
-const SERVER_API_BASE = process.env.API_BASE_URL?.trim();
+function sanitiseEnv(value: string | undefined) {
+  if (!value) return undefined;
+  const trimmed = value.trim();
+  if (!trimmed || trimmed.includes('{{')) {
+    return undefined;
+  }
+  return trimmed;
+}
+
+const PUBLIC_API_BASE = sanitiseEnv(process.env.NEXT_PUBLIC_API_BASE_URL);
+const SERVER_API_BASE = sanitiseEnv(process.env.API_BASE_URL);
 
 const DEV_FALLBACK = process.env.NODE_ENV === 'development' ? 'http://127.0.0.1:8787' : undefined;
 
