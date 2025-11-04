@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "cf:build": "node ./node_modules/@opennextjs/cloudflare/dist/cli/index.js build && node ./scripts/finalize-cloudflare-build.mjs"
   },
   "dependencies": {
     "cheerio": "^1.0.0-rc.12",
