@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Head from 'next/head';
 import type { NewsItem } from '../../lib/news';
+import { clientApiBaseUrl } from '../../lib/config';
 
 interface ApiListResponse {
   data: NewsItem[];
@@ -29,10 +30,17 @@ export default function AdminPage() {
 
   const totalPages = useMemo(() => Math.max(1, Math.ceil(total / limit)), [total, limit]);
 
+  const apiBase = clientApiBaseUrl || (typeof window !== 'undefined' ? window.location.origin : '');
+
+  const withBase = (path: string) => {
+    const base = apiBase.replace(/\/$/, '');
+    return `${base}${path}`;
+  };
+
   const fetchNews = async (pageNumber = 1) => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/news?page=${pageNumber}&limit=${limit}`);
+      const res = await fetch(withBase(`/api/news?page=${pageNumber}&limit=${limit}`));
       const json: ApiListResponse = await res.json();
       setNews(json.data);
       setTotal(json.total);
@@ -59,7 +67,7 @@ export default function AdminPage() {
     setError(null);
     setMessage(null);
     try {
-      const res = await fetch('/api/news', {
+      const res = await fetch(withBase('/api/news'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -93,7 +101,7 @@ export default function AdminPage() {
     setError(null);
     setMessage(null);
     try {
-      const res = await fetch(`/api/news/${form.slug}`, {
+      const res = await fetch(withBase(`/api/news/${form.slug}`), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -116,7 +124,7 @@ export default function AdminPage() {
   const handleDelete = async (slug: string) => {
     if (!confirm('Czy na pewno chcesz usunąć ten artykuł?')) return;
     try {
-      const res = await fetch(`/api/news/${slug}`, {
+      const res = await fetch(withBase(`/api/news/${slug}`), {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -143,7 +151,7 @@ export default function AdminPage() {
     const formData = new FormData();
     formData.append('file', file);
     try {
-      const res = await fetch('/api/uploads', {
+      const res = await fetch(withBase('/api/uploads'), {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -227,7 +235,7 @@ export default function AdminPage() {
             ) : (
               <div className="news-list">
                 {news.map((item) => (
-                  <article key={item.id} className="news-preview-card" style={{ boxShadow: 'var(--shadow-card)' }}>
+                  <article key={item.slug} className="news-preview-card" style={{ boxShadow: 'var(--shadow-card)' }}>
                     <div className="news-preview-date">Opublikowano {item.published_at}</div>
                     <h3>{item.title}</h3>
                     <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>

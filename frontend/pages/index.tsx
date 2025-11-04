@@ -2,7 +2,8 @@ import Head from "next/head";
 import Link from "next/link";
 import { useEffect } from "react";
 import type { GetStaticProps } from 'next';
-import { NewsItem, getAllNews } from '../lib/news';
+import { getServerApiBaseUrl } from '../lib/config';
+import { type NewsItem, getPaginatedNews } from '../lib/news';
 
 interface HomeProps {
   latestNews: NewsItem[];
@@ -197,7 +198,7 @@ export default function Home({ latestNews }: HomeProps) {
                 <p className="section-subtitle">Brak opublikowanych artykułów. Odwiedź nas ponownie.</p>
               )}
               {latestNews.map((item) => (
-                <article key={item.id} className="news-preview-card will-animate" data-animate>
+                <article key={item.slug} className="news-preview-card will-animate" data-animate>
                   <div className="news-preview-date">Opublikowano {item.published_at}</div>
                   <h3>{item.title}</h3>
                   <Link className="news-preview-link" href={`/news/${item.slug}`}>
@@ -352,8 +353,9 @@ export default function Home({ latestNews }: HomeProps) {
 }
 
 export const getStaticProps: GetStaticProps<HomeProps> = async () => {
-  const all = await getAllNews();
-  const latestNews = all.slice(0, 3);
+  const apiBaseUrl = getServerApiBaseUrl();
+  const { data } = await getPaginatedNews(apiBaseUrl, 1, 3);
+  const latestNews = data.slice(0, 3);
   return {
     props: {
       latestNews,

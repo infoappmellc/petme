@@ -1,7 +1,8 @@
 import Head from 'next/head';
 import Link from 'next/link';
 import type { GetServerSideProps } from 'next';
-import { getPaginatedNews, NewsItem } from '../../lib/news';
+import { getServerApiBaseUrl } from '../../lib/config';
+import { getPaginatedNews, type NewsItem } from '../../lib/news';
 
 interface NewsListProps {
   items: NewsItem[];
@@ -27,7 +28,7 @@ export default function NewsList({ items, page, total, perPage }: NewsListProps)
           ) : (
             <div className="news-list">
               {items.map((item) => (
-                <article key={item.id} className="news-preview-card" style={{ boxShadow: 'var(--shadow-card)' }}>
+                <article key={item.slug} className="news-preview-card" style={{ boxShadow: 'var(--shadow-card)' }}>
                   <div className="news-preview-date">Opublikowano {item.published_at}</div>
                   <h2>{item.title}</h2>
                   <Link className="news-preview-link" href={`/news/${item.slug}`}>
@@ -77,13 +78,18 @@ export default function NewsList({ items, page, total, perPage }: NewsListProps)
 export const getServerSideProps: GetServerSideProps<NewsListProps> = async ({ query }) => {
   const page = parseInt((query.page as string) || '1', 10) || 1;
   const perPage = 10;
-  const { data, total } = await getPaginatedNews(Math.max(page, 1), perPage);
+  const apiBaseUrl = getServerApiBaseUrl();
+  const { data, total, limit } = await getPaginatedNews(apiBaseUrl, Math.max(page, 1), perPage);
   return {
     props: {
       items: data,
       total,
-      perPage,
+      perPage: limit,
       page: Math.max(page, 1),
     },
   };
 };
+
+export const config = {
+  runtime: 'edge',
+} as const;

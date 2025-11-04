@@ -1,7 +1,8 @@
 import Head from 'next/head';
 import Link from 'next/link';
-import type { GetStaticProps, GetStaticPaths } from 'next';
-import { getAllNews, getNewsBySlug, NewsItem } from '../../lib/news';
+import type { GetServerSideProps } from 'next';
+import { getServerApiBaseUrl } from '../../lib/config';
+import { getNewsBySlug, type NewsItem } from '../../lib/news';
 
 interface NewsDetailProps {
   article: NewsItem;
@@ -50,26 +51,25 @@ export default function NewsDetail({ article }: NewsDetailProps) {
   );
 }
 
-export const getStaticPaths: GetStaticPaths = async () => {
-  const all = await getAllNews();
-  return {
-    paths: all.map((item) => ({ params: { slug: item.slug } })),
-    fallback: 'blocking',
-  };
-};
-
-export const getStaticProps: GetStaticProps<NewsDetailProps> = async ({ params }) => {
+export const getServerSideProps: GetServerSideProps<NewsDetailProps> = async ({ params }) => {
   const slug = params?.slug as string;
-  const article = await getNewsBySlug(slug);
-  if (!article) {
-    return {
-      notFound: true,
-    };
+  if (!slug) {
+    return { notFound: true };
   }
+
+  const apiBaseUrl = getServerApiBaseUrl();
+  const article = await getNewsBySlug(apiBaseUrl, slug);
+  if (!article) {
+    return { notFound: true };
+  }
+
   return {
     props: {
       article,
     },
-    revalidate: 60,
   };
 };
+
+export const config = {
+  runtime: 'edge',
+} as const;
