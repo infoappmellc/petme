@@ -30,7 +30,7 @@ export default function Home({ latestNews }: HomeProps) {
           name="description"
           content="Polska sieć społecznościowa dla miłośników psów, kotów i innych pupili. Dołącz do Petme, dziel się historiami i pobierz aplikację w Google Play lub App Store."
         />
-        <link rel="icon" href="/images/logo.webp" />
+        <link rel="icon" href="/favicon.ico" />
       </Head>
       <header className="topbar">
         <div className="container nav">
@@ -56,10 +56,10 @@ export default function Home({ latestNews }: HomeProps) {
               <p className="hero-text">Poznawaj, dziel się i pomagaj — wszystko w jednej aplikacji!</p>
               <div className="store-badges">
                 <a className="store-badge" href="#pobierz-google" aria-label="Pobierz w Google Play">
-                  <img src="/images/google-play.webp" alt="Pobierz w Google Play" />
+                  <img src="/images/google-play-icon.webp" alt="Pobierz w Google Play" />
                 </a>
                 <a className="store-badge" href="#pobierz-apple" aria-label="Pobierz w App Store">
-                  <img src="/images/app-store.webp" alt="Pobierz w App Store" />
+                  <img src="/images/app-store-icon.png" alt="Pobierz w App Store" />
                 </a>
               </div>
               <a className="hero-link" href="#about">
@@ -182,7 +182,7 @@ export default function Home({ latestNews }: HomeProps) {
               </ul>
             </div>
             <div className="benefit-media will-animate" data-animate>
-              <img src="/images/app-preview.webp" alt="Zrzut ekranowy Petme" />
+              <img src="/images/app-preview.png" alt="Zrzut ekranowy Petme" />
             </div>
           </div>
         </section>
@@ -289,10 +289,10 @@ export default function Home({ latestNews }: HomeProps) {
               </p>
               <div className="store-badges" style={{ justifyContent: 'center' }}>
                 <a id="pobierz-google" className="store-badge" href="#pobierz-google" aria-label="Pobierz w Google Play">
-                  <img src="/images/google-play.webp" alt="Pobierz w Google Play" />
+                  <img src="/images/google-play-icon.webp" alt="Pobierz w Google Play" />
                 </a>
                 <a id="pobierz-apple" className="store-badge" href="#pobierz-apple" aria-label="Pobierz w App Store">
-                  <img src="/images/app-store.webp" alt="Pobierz w App Store" />
+                  <img src="/images/app-store-icon.png" alt="Pobierz w App Store" />
                 </a>
               </div>
             </div>
