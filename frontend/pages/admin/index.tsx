@@ -239,17 +239,6 @@ export default function AdminPage() {
         <div className="container" style={{ display: 'grid', gap: '2rem' }}>
           <h1>Panel administracyjny</h1>
           <section className="card" style={{ boxShadow: 'var(--shadow-card)' }}>
-            <h2>Token administratora</h2>
-            <input
-              type="password"
-              placeholder="Wpisz token"
-              value={token}
-              onChange={(event) => setToken(event.target.value)}
-              style={{ marginTop: '1rem', padding: '0.75rem', borderRadius: '12px', border: '1px solid rgba(27,35,54,0.12)' }}
-            />
-          </section>
-
-          <section className="card" style={{ boxShadow: 'var(--shadow-card)' }}>
             <h2>Dodaj / Edytuj aktualność</h2>
             <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '1rem' }}>
               <div>
