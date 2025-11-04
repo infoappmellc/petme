@@ -8,7 +8,7 @@ const ROUTES_FILE = path.join(OUTPUT_DIR, '_routes.json');
 const ROUTES_PAYLOAD = {
   version: 1,
   include: ['/*'],
-  exclude: ['/_assets/*'],
+  exclude: ['/_assets/*', '/_next/static/*', '/static/*', '/favicon.ico'],
 };
 
 async function renameWorker() {
