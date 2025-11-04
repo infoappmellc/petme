@@ -71,5 +71,5 @@ export const getServerSideProps: GetServerSideProps<NewsDetailProps> = async ({ 
 };
 
 export const config = {
-  runtime: 'edge',
+  runtime: 'experimental-edge',
 };
