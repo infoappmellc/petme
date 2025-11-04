@@ -1,0 +1,7 @@
+name = "petme-frontend"
+compatibility_date = "2025-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+API_BASE_URL = "{{ env.API_BASE_URL }}"
+NEXT_PUBLIC_API_BASE_URL = "{{ env.NEXT_PUBLIC_API_BASE_URL }}"
