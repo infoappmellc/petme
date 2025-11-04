@@ -90,6 +90,4 @@ export const getServerSideProps: GetServerSideProps<NewsListProps> = async ({ qu
   };
 };
 
-export const config = {
-  runtime: 'edge',
-} as const;
+export const runtime = 'edge';
