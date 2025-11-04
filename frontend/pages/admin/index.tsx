@@ -17,6 +17,9 @@ const initialForm = {
   content: '',
 };
 
+const DEFAULT_USERNAME = 'admin';
+const DEFAULT_PASSWORD = '123123';
+
 export default function AdminPage() {
   const [token, setToken] = useState('');
   const [form, setForm] = useState(initialForm);
@@ -27,6 +30,8 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [credentials, setCredentials] = useState({ username: '', password: '' });
+  const [loggedIn, setLoggedIn] = useState(false);
 
   const totalPages = useMemo(() => Math.max(1, Math.ceil(total / limit)), [total, limit]);
 
@@ -54,8 +59,10 @@ export default function AdminPage() {
   };
 
   useEffect(() => {
-    fetchNews();
-  }, []);
+    if (loggedIn) {
+      fetchNews();
+    }
+  }, [loggedIn]);
 
   const handleChange = (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = event.target;
@@ -169,6 +176,58 @@ export default function AdminPage() {
       setError((err as Error).message);
     }
   };
+
+  const handleCredentialsChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = event.target;
+    setCredentials((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleLogin = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setError(null);
+    setMessage(null);
+
+    const username = credentials.username.trim();
+    if (username !== DEFAULT_USERNAME || credentials.password !== DEFAULT_PASSWORD) {
+      setError('Nieprawidłowa nazwa użytkownika lub hasło.');
+      return;
+    }
+
+    setToken(DEFAULT_PASSWORD);
+    setLoggedIn(true);
+    setMessage('Zalogowano pomyślnie.');
+    setCredentials({ username: '', password: '' });
+  };
+
+  if (!loggedIn) {
+    return (
+      <>
+        <Head>
+          <link rel="icon" href="/images/logo.webp" />
+          <title>Logowanie administratora PetMe</title>
+        </Head>
+        <main className="section" style={{ paddingTop: '4rem' }}>
+          <div className="container" style={{ maxWidth: '480px', display: 'grid', gap: '1.5rem' }}>
+            <h1>Panel administracyjny</h1>
+            <p className="section-subtitle">Użyj domyślnych danych logowania, aby uzyskać dostęp do panelu.</p>
+            <form onSubmit={handleLogin} className="card" style={{ padding: '2rem', display: 'grid', gap: '1rem', boxShadow: 'var(--shadow-card)' }}>
+              <div>
+                <label htmlFor="username">Nazwa użytkownika</label>
+                <input id="username" name="username" value={credentials.username} onChange={handleCredentialsChange} autoComplete="username" required />
+              </div>
+              <div>
+                <label htmlFor="password">Hasło</label>
+                <input id="password" name="password" type="password" value={credentials.password} onChange={handleCredentialsChange} autoComplete="current-password" required />
+              </div>
+              <button type="submit" className="button-primary">Zaloguj</button>
+            </form>
+            {error && <div className="errors">{error}</div>}
+            {message && <div className="messages">{message}</div>}
+          </div>
+        </main>
+      </>
+    );
+  }
 
   return (
     <>
