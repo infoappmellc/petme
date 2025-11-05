@@ -72,7 +72,15 @@ export default function AdminPage() {
     if (!editorContainerRef.current) return;
     if (editorInstanceRef.current) return;
 
-    const RTE = (window as RichTextEditorGlobal).RichTextEditor;
+    const globalWithRte = window as RichTextEditorGlobal & { RTE_DefaultConfig?: Record<string, unknown> };
+    if (globalWithRte.RTE_DefaultConfig) {
+      globalWithRte.RTE_DefaultConfig.url_base = '/vendor/rte';
+      globalWithRte.RTE_DefaultConfig.contentCssUrl = '/vendor/rte/runtime/richtexteditor_content.css';
+      globalWithRte.RTE_DefaultConfig.previewCssUrl = '/vendor/rte/runtime/richtexteditor_preview.css';
+      globalWithRte.RTE_DefaultConfig.previewScriptUrl = '/vendor/rte/runtime/richtexteditor_preview.js';
+      globalWithRte.RTE_DefaultConfig.helpUrl = '/vendor/rte/runtime/help.htm';
+    }
+    const RTE = globalWithRte.RichTextEditor;
     if (!RTE) return;
 
     const instance = new RTE(`#${EDITOR_ELEMENT_ID}`);
