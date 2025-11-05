@@ -51,4 +51,4 @@ export function getServerApiBaseUrl(req?: RequestLike): string {
   throw new Error('API base URL is not configured. Set API_BASE_URL in your environment.');
 }
 
-export const clientApiBaseUrl = PUBLIC_API_BASE || VERCEL_URL || DEV_FALLBACK || '';
+export const clientApiBaseUrl = PUBLIC_API_BASE || '';
