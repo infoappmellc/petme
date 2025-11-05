@@ -4,8 +4,7 @@ compatibility_flags = ["nodejs_compat", "global_fetch_strictly_public"]
 pages_build_output_dir = ".open-next"
 
 [assets]
-directory = ".open-next/assets"
-binding = "ASSETS"
+run_worker_first = ["/_next/static/*", "/_next/data/*"]
 
 [[r2_buckets]]
 binding = "NEXT_INC_CACHE_R2_BUCKET"
