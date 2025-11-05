@@ -8,6 +8,18 @@ const router = Router();
 
 router.get('/health', () => new Response('ok'));
 
+const apiIndex = () =>
+  new Response(
+    JSON.stringify({
+      status: 'ok',
+      endpoints: ['/api/news', '/api/news/:slug', '/api/uploads', '/media/*'],
+    }),
+    { headers: { 'content-type': 'application/json' } },
+  );
+
+router.get('/api', apiIndex);
+router.get('/api/', apiIndex);
+
 registerNewsRoutes(router);
 registerUploadRoutes(router);
 

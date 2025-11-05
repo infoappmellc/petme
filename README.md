@@ -4,25 +4,27 @@ This repository now contains separate projects for the web frontend and the Clou
 
 ```
 petme/
-├── frontend/    # Next.js application deployed with Cloudflare Pages
+├── frontend/    # Next.js application (deploy to Vercel)
 └── worker/      # Cloudflare Worker API (KV/R2 ready)
 ```
 
 ## Frontend
 
-The Next.js source code originally found in `next-app/` is now located inside `frontend/`. Deploy it with Cloudflare Pages by pointing the build command to that directory.
+The Next.js source code originally found in `next-app/` is now located inside `frontend/`. The project uses the stock Next.js build pipeline, so Vercel can deploy it without additional adapters:
 
-### Automated deploys
+1. Link the repo to Vercel and select `frontend` as the project root.
+2. Use the default build command `npm run build` and output directory `.next`.
+3. Configure the following environment variables in Vercel (Production + Preview):
+   - `API_BASE_URL` / `NEXT_PUBLIC_API_BASE_URL` – HTTPS origin of the API Worker (e.g. `https://petme-backend.yourdomain.workers.dev`).
+   - `ADMIN_TOKEN` – shared secret for the admin dashboard.
 
-The repository ships with a GitHub Actions workflow (`.github/workflows/deploy-frontend.yml`) that builds the OpenNext bundle and publishes it to Cloudflare Pages on every push to `main`. To enable it:
+For local development run:
 
-1. Create repository secrets:
-   - `CLOUDFLARE_ACCOUNT_ID` — the Cloudflare account that owns the Pages project.
-   - `CLOUDFLARE_API_TOKEN` — an API token with **Pages Writes** and **R2 Writes** (if you cache to R2) permissions.
-2. Make sure a Pages project named `petme-frontend` exists. Adjust `CF_PAGES_PROJECT` in the workflow if you prefer a different name.
-3. Configure the Pages project environment variables (`API_BASE_URL`, `NEXT_PUBLIC_API_BASE_URL`, etc.) through the Cloudflare dashboard; they do not need to live in the workflow.
-
-You can also trigger the workflow manually from the Actions tab via the **Run workflow** button.
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
 ## Worker
 
