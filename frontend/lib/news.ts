@@ -51,6 +51,14 @@ export async function getPaginatedNews(apiBaseUrl: string, page: number, perPage
   });
 
   if (!response.ok) {
+    if (response.status === 404) {
+      return {
+        data: [],
+        total: 0,
+        page,
+        limit: perPage,
+      };
+    }
     throw new Error(`Failed to fetch news list (status ${response.status}).`);
   }
 

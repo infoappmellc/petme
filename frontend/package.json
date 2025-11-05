@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "cf:build": "node ./node_modules/@opennextjs/cloudflare/dist/cli/index.js build && node ./scripts/finalize-cloudflare-build.mjs"
+    "cf:build": "node ./node_modules/@opennextjs/cloudflare/dist/cli/index.js build && node ./scripts/finalize-cloudflare-build.mjs",
+    "cf:dev": "npm run cf:build && npx wrangler dev .open-next/_worker.js --assets .open-next/assets --local-protocol=http --port 8788"
   },
   "dependencies": {
     "cheerio": "^1.0.0-rc.12",

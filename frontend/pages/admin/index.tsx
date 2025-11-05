@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Head from 'next/head';
+import Script from 'next/script';
 import type { NewsItem } from '../../lib/news';
 import { clientApiBaseUrl } from '../../lib/config';
 
@@ -10,19 +11,22 @@ interface ApiListResponse {
   limit: number;
 }
 
-const initialForm = {
+type RichTextEditorGlobal = Window & { RichTextEditor?: any };
+
+const createInitialForm = () => ({
   title: '',
   slug: '',
   published_at: new Date().toISOString().slice(0, 10),
   content: '',
-};
+});
 
 const DEFAULT_USERNAME = 'admin';
 const DEFAULT_PASSWORD = '123123';
+const EDITOR_ELEMENT_ID = 'admin-news-editor';
 
 export default function AdminPage() {
   const [token, setToken] = useState('');
-  const [form, setForm] = useState(initialForm);
+  const [form, setForm] = useState(createInitialForm);
   const [news, setNews] = useState<NewsItem[]>([]);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
@@ -32,6 +36,11 @@ export default function AdminPage() {
   const [error, setError] = useState<string | null>(null);
   const [credentials, setCredentials] = useState({ username: '', password: '' });
   const [loggedIn, setLoggedIn] = useState(false);
+  const [rteReady, setRteReady] = useState(false);
+
+  const editorContainerRef = useRef<HTMLDivElement | null>(null);
+  const editorInstanceRef = useRef<any>(null);
+  const editorLastHtmlRef = useRef('');
 
   const totalPages = useMemo(() => Math.max(1, Math.ceil(total / limit)), [total, limit]);
 
@@ -41,6 +50,97 @@ export default function AdminPage() {
     const base = apiBase.replace(/\/$/, '');
     return `${base}${path}`;
   };
+
+  const editorScripts = (
+    <>
+      <Script
+        src="/vendor/rte/scripts/rte.js"
+        strategy="afterInteractive"
+        onLoad={() => {
+          if (typeof window !== 'undefined' && (window as RichTextEditorGlobal).RichTextEditor) {
+            setRteReady(true);
+          }
+        }}
+      />
+      <Script src="/vendor/rte/scripts/all_plugins.js" strategy="afterInteractive" />
+    </>
+  );
+
+  const initializeEditor = useCallback(() => {
+    if (!rteReady) return;
+    if (typeof window === 'undefined') return;
+    if (!editorContainerRef.current) return;
+    if (editorInstanceRef.current) return;
+
+    const RTE = (window as RichTextEditorGlobal).RichTextEditor;
+    if (!RTE) return;
+
+    const instance = new RTE(`#${EDITOR_ELEMENT_ID}`);
+    editorInstanceRef.current = instance;
+
+    const initialHtml = form.content || '';
+    if (typeof instance.setHTMLCode === 'function') {
+      instance.setHTMLCode(initialHtml);
+    } else if (typeof instance.insertHTML === 'function') {
+      instance.insertHTML(initialHtml);
+    }
+    editorLastHtmlRef.current = initialHtml;
+
+    const syncFromEditor = () => {
+      const html =
+        typeof instance.getHTMLCode === 'function'
+          ? instance.getHTMLCode()
+          : typeof instance.getText === 'function'
+          ? instance.getText()
+          : '';
+      editorLastHtmlRef.current = html;
+      setForm((prev) => ({ ...prev, content: html }));
+    };
+
+    if (typeof instance.attachEvent === 'function') {
+      instance.attachEvent('change', syncFromEditor);
+    } else if (typeof instance.onchange === 'function') {
+      instance.onchange = syncFromEditor;
+    }
+  }, [form.content, rteReady]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if ((window as RichTextEditorGlobal).RichTextEditor) {
+      setRteReady(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!loggedIn) return;
+    initializeEditor();
+  }, [initializeEditor, loggedIn]);
+
+  useEffect(() => {
+    if (!editorInstanceRef.current) return;
+    const html = form.content || '';
+    if (editorLastHtmlRef.current === html) {
+      return;
+    }
+    if (typeof editorInstanceRef.current.setHTMLCode === 'function') {
+      editorInstanceRef.current.setHTMLCode(html);
+      editorLastHtmlRef.current = html;
+    }
+  }, [form.content]);
+
+  useEffect(() => {
+    return () => {
+      const instance = editorInstanceRef.current;
+      if (instance) {
+        if (typeof instance.destroy === 'function') {
+          instance.destroy();
+        } else if (typeof instance.dispose === 'function') {
+          instance.dispose();
+        }
+      }
+      editorInstanceRef.current = null;
+    };
+  }, []);
 
   const fetchNews = async (pageNumber = 1) => {
     setLoading(true);
@@ -52,7 +152,7 @@ export default function AdminPage() {
       setPage(json.page);
     } catch (err) {
       console.error(err);
-      setError('Nie udało się pobrać listy aktualności.');
+      setError('Không thể tải danh sách tin tức.');
     } finally {
       setLoading(false);
     }
@@ -84,10 +184,14 @@ export default function AdminPage() {
       });
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || 'Wystąpił błąd');
+        throw new Error(data.error || 'Đã xảy ra lỗi.');
       }
-      setMessage('Zapisano aktualność.');
-      setForm(initialForm);
+      setMessage('Đã lưu bài viết tin tức.');
+      setForm(createInitialForm());
+      editorLastHtmlRef.current = '';
+      if (editorInstanceRef.current && typeof editorInstanceRef.current.setHTMLCode === 'function') {
+        editorInstanceRef.current.setHTMLCode('');
+      }
       fetchNews();
     } catch (err) {
       setError((err as Error).message);
@@ -101,7 +205,8 @@ export default function AdminPage() {
       published_at: item.published_at,
       content: item.content,
     });
-    setMessage('Tryb edycji — wprowadź zmiany i kliknij "Aktualizuj".');
+    editorLastHtmlRef.current = item.content;
+    setMessage('Đang chỉnh sửa — cập nhật nội dung rồi bấm "Cập nhật".');
   };
 
   const handleUpdate = async () => {
@@ -118,10 +223,14 @@ export default function AdminPage() {
       });
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || 'Wystąpił błąd');
+        throw new Error(data.error || 'Đã xảy ra lỗi.');
       }
-      setMessage('Zaktualizowano aktualność.');
-      setForm(initialForm);
+      setMessage('Đã cập nhật bài viết.');
+      setForm(createInitialForm());
+      editorLastHtmlRef.current = '';
+      if (editorInstanceRef.current && typeof editorInstanceRef.current.setHTMLCode === 'function') {
+        editorInstanceRef.current.setHTMLCode('');
+      }
       fetchNews(page);
     } catch (err) {
       setError((err as Error).message);
@@ -129,7 +238,7 @@ export default function AdminPage() {
   };
 
   const handleDelete = async (slug: string) => {
-    if (!confirm('Czy na pewno chcesz usunąć ten artykuł?')) return;
+    if (!confirm('Bạn chắc chắn muốn xóa bài viết này?')) return;
     try {
       const res = await fetch(withBase(`/api/news/${slug}`), {
         method: 'DELETE',
@@ -139,9 +248,9 @@ export default function AdminPage() {
       });
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || 'Wystąpił błąd podczas usuwania.');
+        throw new Error(data.error || 'Đã xảy ra lỗi khi xóa.');
       }
-      setMessage('Usunięto artykuł.');
+      setMessage('Đã xóa bài viết.');
       fetchNews(page);
     } catch (err) {
       setError((err as Error).message);
@@ -152,7 +261,7 @@ export default function AdminPage() {
     const file = event.target.files?.[0];
     if (!file) return;
     if (!token) {
-      setError('Wpisz token administratora przed przesłaniem pliku.');
+      setError('Hãy nhập mã quản trị trước khi tải tệp lên.');
       return;
     }
     const formData = new FormData();
@@ -167,11 +276,15 @@ export default function AdminPage() {
       });
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || 'Wystąpił błąd podczas przesyłania.');
+        throw new Error(data.error || 'Đã xảy ra lỗi khi tải lên.');
       }
       const data = await res.json();
-      setMessage(`Przesłano plik. URL: ${data.url}`);
-      setForm((prev) => ({ ...prev, content: `${prev.content}\n<img src="${data.url}" alt="" />` }));
+      setMessage(`Tải tệp thành công. URL: ${data.url}`);
+      setForm((prev) => {
+        const updatedContent = `${prev.content}\n<img src="${data.url}" alt="" />`;
+        editorLastHtmlRef.current = updatedContent;
+        return { ...prev, content: updatedContent };
+      });
     } catch (err) {
       setError((err as Error).message);
     }
@@ -189,37 +302,39 @@ export default function AdminPage() {
 
     const username = credentials.username.trim();
     if (username !== DEFAULT_USERNAME || credentials.password !== DEFAULT_PASSWORD) {
-      setError('Nieprawidłowa nazwa użytkownika lub hasło.');
+      setError('Sai tên đăng nhập hoặc mật khẩu.');
       return;
     }
 
     setToken(DEFAULT_PASSWORD);
     setLoggedIn(true);
-    setMessage('Zalogowano pomyślnie.');
+    setMessage('Đăng nhập thành công.');
     setCredentials({ username: '', password: '' });
   };
 
   if (!loggedIn) {
     return (
       <>
+        {editorScripts}
         <Head>
           <link rel="icon" href="/images/logo.webp" />
-          <title>Logowanie administratora PetMe</title>
+          <link rel="stylesheet" href="/vendor/rte/styles/rte-theme-default.css" />
+          <title>Đăng nhập quản trị PetMe</title>
         </Head>
         <main className="section" style={{ paddingTop: '4rem' }}>
           <div className="container" style={{ maxWidth: '480px', display: 'grid', gap: '1.5rem' }}>
-            <h1>Panel administracyjny</h1>
-            <p className="section-subtitle">Użyj domyślnych danych logowania, aby uzyskać dostęp do panelu.</p>
+            <h1>Bảng điều khiển quản trị</h1>
+            <p className="section-subtitle">Sử dụng thông tin đăng nhập mặc định để truy cập bảng điều khiển.</p>
             <form onSubmit={handleLogin} className="card" style={{ padding: '2rem', display: 'grid', gap: '1rem', boxShadow: 'var(--shadow-card)' }}>
               <div>
-                <label htmlFor="username">Nazwa użytkownika</label>
+                <label htmlFor="username">Tên đăng nhập</label>
                 <input id="username" name="username" value={credentials.username} onChange={handleCredentialsChange} autoComplete="username" required />
               </div>
               <div>
-                <label htmlFor="password">Hasło</label>
+                <label htmlFor="password">Mật khẩu</label>
                 <input id="password" name="password" type="password" value={credentials.password} onChange={handleCredentialsChange} autoComplete="current-password" required />
               </div>
-              <button type="submit" className="button-primary">Zaloguj</button>
+              <button type="submit" className="button-primary">Đăng nhập</button>
             </form>
             {error && <div className="errors">{error}</div>}
             {message && <div className="messages">{message}</div>}
@@ -231,41 +346,47 @@ export default function AdminPage() {
 
   return (
     <>
+      {editorScripts}
       <Head>
         <link rel="icon" href="/images/logo.webp" />
-        <title>Panel administracyjny PetMe</title>
+        <link rel="stylesheet" href="/vendor/rte/styles/rte-theme-default.css" />
+        <title>Bảng điều khiển quản trị PetMe</title>
       </Head>
       <main className="section" style={{ paddingTop: '4rem' }}>
         <div className="container" style={{ display: 'grid', gap: '2rem' }}>
-          <h1>Panel administracyjny</h1>
+          <h1>Bảng điều khiển quản trị</h1>
           <section className="card" style={{ boxShadow: 'var(--shadow-card)' }}>
-            <h2>Dodaj / Edytuj aktualność</h2>
+            <h2>Thêm / Chỉnh sửa tin tức</h2>
             <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '1rem' }}>
               <div>
-                <label htmlFor="title">Tytuł</label>
+                <label htmlFor="title">Tiêu đề</label>
                 <input id="title" name="title" value={form.title} onChange={handleChange} required />
               </div>
               <div>
                 <label htmlFor="slug">Slug (URL)</label>
-                <input id="slug" name="slug" value={form.slug} onChange={handleChange} placeholder="np. wielki-poradnik" />
+                <input id="slug" name="slug" value={form.slug} onChange={handleChange} placeholder="ví dụ: cam-nang-cho-meo" />
               </div>
               <div>
-                <label htmlFor="published_at">Data publikacji</label>
+                <label htmlFor="published_at">Ngày đăng</label>
                 <input type="date" id="published_at" name="published_at" value={form.published_at} onChange={handleChange} />
               </div>
               <div>
-                <label htmlFor="content">Treść (HTML lub tekst)</label>
-                <textarea id="content" name="content" rows={12} value={form.content} onChange={handleChange} required />
-                <small>Wklejając artykuł z innej strony, obrazki zostaną pobrane i zapisane lokalnie.</small>
+                <label htmlFor={EDITOR_ELEMENT_ID}>Nội dung (HTML hoặc văn bản)</label>
+                <div
+                  id={EDITOR_ELEMENT_ID}
+                  ref={editorContainerRef}
+                  style={{ minHeight: '320px', border: '1px solid var(--border-muted, rgba(0, 0, 0, 0.12))', borderRadius: '0.5rem' }}
+                />
+                <small>Khi dán bài viết từ trang khác, hình ảnh sẽ được tải về và lưu lại trên máy chủ.</small>
               </div>
               <div>
-                <label htmlFor="upload">Prześlij obraz</label>
+                <label htmlFor="upload">Tải ảnh lên</label>
                 <input id="upload" type="file" accept="image/*" onChange={handleUpload} />
               </div>
               <div style={{ display: 'flex', gap: '1rem' }}>
-                <button type="submit">Zapisz jako nowy</button>
+                <button type="submit">Lưu bài viết mới</button>
                 <button type="button" onClick={handleUpdate}>
-                  Aktualizuj istniejący
+                  Cập nhật bài viết hiện có
                 </button>
               </div>
             </form>
@@ -275,26 +396,26 @@ export default function AdminPage() {
           {error && <div className="errors">{error}</div>}
 
           <section className="card" style={{ boxShadow: 'var(--shadow-card)' }}>
-            <h2>Lista aktualności</h2>
+            <h2>Danh sách tin tức</h2>
             {loading ? (
-              <p>Ładowanie…</p>
+              <p>Đang tải…</p>
             ) : news.length === 0 ? (
-              <p>Brak artykułów.</p>
+              <p>Chưa có bài viết.</p>
             ) : (
               <div className="news-list">
                 {news.map((item) => (
                   <article key={item.slug} className="news-preview-card" style={{ boxShadow: 'var(--shadow-card)' }}>
-                    <div className="news-preview-date">Opublikowano {item.published_at}</div>
+                    <div className="news-preview-date">Đăng ngày {item.published_at}</div>
                     <h3>{item.title}</h3>
                     <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
                       <button type="button" onClick={() => handleEdit(item)}>
-                        Edytuj
+                        Chỉnh sửa
                       </button>
                       <button type="button" onClick={() => handleDelete(item.slug)}>
-                        Usuń
+                        Xóa
                       </button>
                       <a className="news-preview-link" href={`/news/${item.slug}`} target="_blank" rel="noopener">
-                        Podgląd
+                        Xem trước
                       </a>
                     </div>
                   </article>
@@ -302,10 +423,10 @@ export default function AdminPage() {
               </div>
             )}
             {totalPages > 1 && (
-              <nav className="pagination" aria-label="Stronicowanie">
+              <nav className="pagination" aria-label="Phân trang">
                 {page > 1 && (
                   <button type="button" onClick={() => fetchNews(page - 1)}>
-                    « Poprzednia
+                    « Trang trước
                   </button>
                 )}
                 {Array.from({ length: totalPages }).map((_, index) => {
@@ -313,19 +434,19 @@ export default function AdminPage() {
                   if (p === page) {
                     return (
                       <span key={p} className="current">
-                        Strona {p}
+                        Trang {p}
                       </span>
                     );
                   }
                   return (
                     <button key={p} type="button" onClick={() => fetchNews(p)}>
-                      Strona {p}
+                      Trang {p}
                     </button>
                   );
                 })}
                 {page < totalPages && (
                   <button type="button" onClick={() => fetchNews(page + 1)}>
-                    Następna »
+                    Trang tiếp »
                   </button>
                 )}
               </nav>
