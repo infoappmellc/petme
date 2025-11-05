@@ -10,7 +10,6 @@ const ROUTES_PAYLOAD = {
   include: ['/*'],
   exclude: [
     '/_assets/**',
-    '/_next/static/**',
     '/_next/data/**',
     '/static/**',
     '/images/**',
